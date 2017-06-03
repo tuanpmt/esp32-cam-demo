@@ -467,18 +467,18 @@ static void line_filter_task(void *pvParameters)
             // 1 Pixel = (2Byte i2s overhead + 2Byte pixeldata)
 
             uint32_t rgb = *buf;
-            // rgb >>= 16;
+            rgb >>= 16; //remove 2Byte i2s overhead
             
-            uint8_t red =       (rgb & 0b111110000000000) >> (10);
+            uint32_t red =       (rgb & 0b111110000000000) >> (10);
             *pfb = red << 3;
             pfb++;
 
             // // // Set target pointer 8 bit forward
-            uint8_t green =     (rgb & 0b000001111100000) >> (5);
+            uint32_t green =     (rgb & 0b000001111100000) >> (5);
             *pfb = green << 3;
             pfb++;
 
-            uint8_t blue =      (rgb & 0b000000000011111);
+            uint32_t blue =      (rgb & 0b000000000011111);
             *pfb = blue << 3;
             pfb++;
  

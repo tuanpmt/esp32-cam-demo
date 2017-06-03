@@ -368,7 +368,7 @@ static void i2s_init()
     I2S0.fifo_conf.rx_fifo_mod_force_en = 1;
     I2S0.conf_chan.rx_chan_mod = 1;
     // Grab 16 samples
-    I2S0.sample_rate_conf.rx_bits_mod = 24;
+    I2S0.sample_rate_conf.rx_bits_mod = 16;
     // Clear flags which are used in I2S serial mode
     I2S0.conf.rx_right_first = 0;
     I2S0.conf.rx_msb_right = 0;
@@ -467,18 +467,19 @@ static void line_filter_task(void *pvParameters)
             // 1 Pixel = (2Byte i2s overhead + 2Byte pixeldata)
 
             uint32_t rgb = *buf;
+            // rgb >>= 16;
             
-            uint8_t red = (rgb & 0b0111110000000000000000) >> (16);
-            *pfb = red;
+            uint8_t red =       (rgb & 0b111110000000000) >> (10);
+            *pfb = red << 3;
             pfb++;
 
             // // // Set target pointer 8 bit forward
-            uint8_t green = (rgb & 0b0000001111100000) >> (5);
-            *pfb = green;
+            uint8_t green =     (rgb & 0b000001111100000) >> (5);
+            *pfb = green << 3;
             pfb++;
 
-            uint8_t blue = (rgb & 0b0000000000011111);
-            *pfb = blue;
+            uint8_t blue =      (rgb & 0b000000000011111);
+            *pfb = blue << 3;
             pfb++;
  
             // ets_printf("rgb=%x, red=%x, green=%x, blue=%x, buf_addr=%x, pfb_addr=%x\r\n", rgb, red, green, blue, (int)buf, (int)pfb);

@@ -102,7 +102,7 @@ static int camera_handle(HttpdConnData *connData)
     int idx = 0, sz = camera_get_fb_width()*camera_get_fb_height()*3;
     if(connData->cgiData != NULL) {
         idx = (int)connData->cgiData;
-        ESP_LOGD(TAG, "More = %d", idx);
+        // ESP_LOGD(TAG, "More = %d", idx);
         int sz_write = sz - idx;
         
         if(sz_write > 1024)

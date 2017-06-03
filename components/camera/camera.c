@@ -152,7 +152,7 @@ esp_err_t camera_init(const camera_config_t* config)
     ESP_LOGD(TAG, "Doing SW reset of sensor");
     s_sensor.reset(&s_sensor);
 
-// #if ENABLE_TEST_PATTERN
+#if ENABLE_TEST_PATTERN
     /* Test pattern may get handy
        if you are unable to get the live image right.
        Once test pattern is enable, sensor will output
@@ -160,7 +160,7 @@ esp_err_t camera_init(const camera_config_t* config)
     */
     s_sensor.set_colorbar(&s_sensor, 1);
     ESP_LOGD(TAG, "Test pattern enabled");
-// #endif
+#endif
 
     framesize_t framesize = FRAMESIZE_HQVGA;
     s_fb_w = resolution[framesize][0];
@@ -364,17 +364,18 @@ static void i2s_init()
     // FIFO will sink data to DMA
     I2S0.fifo_conf.dscr_en = 1;
     // FIFO configuration, TBD if needed
-    I2S0.fifo_conf.rx_fifo_mod = 1;
+    I2S0.fifo_conf.rx_fifo_mod = 0;
     I2S0.fifo_conf.rx_fifo_mod_force_en = 1;
     I2S0.conf_chan.rx_chan_mod = 1;
     // Grab 16 samples
-    I2S0.sample_rate_conf.rx_bits_mod = 16;
+    I2S0.sample_rate_conf.rx_bits_mod = 0;
     // Clear flags which are used in I2S serial mode
     I2S0.conf.rx_right_first = 0;
     I2S0.conf.rx_msb_right = 0;
     I2S0.conf.rx_msb_shift = 0;
     I2S0.conf.rx_mono = 0;
     I2S0.conf.rx_short_sync = 0;
+    I2S0.timing.val = 0;
 
     // Allocate I2S interrupt, keep it disabled
     esp_intr_alloc(ETS_I2S0_INTR_SOURCE,
@@ -467,22 +468,25 @@ static void line_filter_task(void *pvParameters)
             // 1 Pixel = (2Byte i2s overhead + 2Byte pixeldata)
 
             uint32_t rgb = *buf;
-            rgb >>= 16; //remove 2Byte i2s overhead
-            
-            uint32_t red =       (rgb & 0b111110000000000) >> (10);
-            *pfb = red << 3;
+            uint8_t temp = (uint8_t) rgb;
+            rgb >>= 8; //remove 2Byte i2s overhead
+            rgb &= 0xFF00;
+            rgb |= temp;
+
+            uint32_t red =       (rgb & 0b1111100000000000) >> (11);
+            *pfb = red ;//<< 3;
             pfb++;
 
             // // // Set target pointer 8 bit forward
             uint32_t green =     (rgb & 0b000001111100000) >> (5);
-            *pfb = green << 3;
+            *pfb = green ;//<< 2;
             pfb++;
 
-            uint32_t blue =      (rgb & 0b000000000011111);
-            *pfb = blue << 3;
+            uint32_t blue =      (rgb & 0b0000000000011111);
+            *pfb = blue ;//<< 3;
             pfb++;
- 
-            // ets_printf("rgb=%x, red=%x, green=%x, blue=%x, buf_addr=%x, pfb_addr=%x\r\n", rgb, red, green, blue, (int)buf, (int)pfb);
+
+            // ets_printf("rgb=%x, red=%xx, green=%x, blue=%x, buf_addr=%x, pfb_addr=%x\r\n", rgb, red, green, blue, (int)buf, (int)pfb);
             buf ++;
 
         }

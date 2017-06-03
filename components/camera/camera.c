@@ -152,7 +152,7 @@ esp_err_t camera_init(const camera_config_t* config)
     ESP_LOGD(TAG, "Doing SW reset of sensor");
     s_sensor.reset(&s_sensor);
 
-#if ENABLE_TEST_PATTERN
+// #if ENABLE_TEST_PATTERN
     /* Test pattern may get handy
        if you are unable to get the live image right.
        Once test pattern is enable, sensor will output
@@ -160,9 +160,9 @@ esp_err_t camera_init(const camera_config_t* config)
     */
     s_sensor.set_colorbar(&s_sensor, 1);
     ESP_LOGD(TAG, "Test pattern enabled");
-#endif
+// #endif
 
-    framesize_t framesize = FRAMESIZE_QVGA;
+    framesize_t framesize = FRAMESIZE_HQVGA;
     s_fb_w = resolution[framesize][0];
     s_fb_h = resolution[framesize][1];
     ESP_LOGD(TAG, "Setting frame size at %dx%d", s_fb_w, s_fb_h);
@@ -170,8 +170,10 @@ esp_err_t camera_init(const camera_config_t* config)
         ESP_LOGE(TAG, "Failed to set frame size");
         return ESP_ERR_CAMERA_FAILED_TO_SET_FRAME_SIZE;
     }
+    // s_sensor.set_whitebal(&s_sensor, 1);
+    // s_sensor.set_exposure_ctrl(&s_sensor, 1);
 
-    s_fb_size = s_fb_w * s_fb_h;
+    s_fb_size = s_fb_w * s_fb_h * 3;
     ESP_LOGD(TAG, "Allocating frame buffer (%dx%d, %d bytes)", s_fb_w, s_fb_h,
             s_fb_size);
     s_fb = (uint8_t*) malloc(s_fb_size);
@@ -366,7 +368,7 @@ static void i2s_init()
     I2S0.fifo_conf.rx_fifo_mod_force_en = 1;
     I2S0.conf_chan.rx_chan_mod = 1;
     // Grab 16 samples
-    I2S0.sample_rate_conf.rx_bits_mod = 16;
+    I2S0.sample_rate_conf.rx_bits_mod = 24;
     // Clear flags which are used in I2S serial mode
     I2S0.conf.rx_right_first = 0;
     I2S0.conf.rx_msb_right = 0;
@@ -441,6 +443,13 @@ static void IRAM_ATTR i2s_isr(void* arg)
     }
 }
 
+// typedef struct __attribute__((packed, aligned(1))){
+//     int not_used: 16;
+//     int red: 5;
+//     int green: 6;
+//     int blue: 5;
+// } rgb_data;
+
 static void line_filter_task(void *pvParameters)
 {
     int prev_buf = -1;
@@ -450,21 +459,31 @@ static void line_filter_task(void *pvParameters)
         if (prev_buf != -1 && prev_buf == buf_idx) {
             ets_printf("! %d\n", s_line_count);
         }
-        uint8_t* pfb = s_fb + s_line_count * s_buf_line_width;
+        uint8_t* pfb = s_fb + s_line_count * s_buf_line_width * 3;
         // Get pointer to the current DMA buffer
-        const uint32_t* buf = s_dma_buf[buf_idx];
+        uint32_t* buf = s_dma_buf[buf_idx];
         for (int i = 0; i < s_buf_line_width; ++i) {
             // Get 32 bit from DMA buffer
             // 1 Pixel = (2Byte i2s overhead + 2Byte pixeldata)
-            uint32_t v = *buf;
-            // Extract third byte (only the luminance information from the pixel)
-            uint8_t comp = (v & 0xff0000) >> 16;
-            // Write byte to target buffer
-            *pfb = comp;
-            // Set source pointer 32 bit forward
-            ++buf;
-            // Set target pointer 8 bit forward
-            ++pfb;
+
+            uint32_t rgb = *buf;
+            
+            uint8_t red = (rgb & 0b0111110000000000000000) >> (16);
+            *pfb = red;
+            pfb++;
+
+            // // // Set target pointer 8 bit forward
+            uint8_t green = (rgb & 0b0000001111100000) >> (5);
+            *pfb = green;
+            pfb++;
+
+            uint8_t blue = (rgb & 0b0000000000011111);
+            *pfb = blue;
+            pfb++;
+ 
+            // ets_printf("rgb=%x, red=%x, green=%x, blue=%x, buf_addr=%x, pfb_addr=%x\r\n", rgb, red, green, blue, (int)buf, (int)pfb);
+            buf ++;
+
         }
         ++s_line_count;
         prev_buf = buf_idx;

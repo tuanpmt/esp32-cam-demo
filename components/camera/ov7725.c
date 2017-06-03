@@ -16,7 +16,7 @@
 
 static const uint8_t default_regs[][2] = {
     {COM3,          COM3_SWAP_YUV},
-    {COM7,          COM7_RES_QVGA | COM7_FMT_YUV},
+    {COM7,          COM7_RES_VGA | COM7_FMT_RGB555 | COM7_FMT_RGB},
 
     {COM4,          0x01}, /* bypass PLL */
     {CLKRC,         0xC0}, /* Res/Bypass pre-scalar */

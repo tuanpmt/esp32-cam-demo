@@ -768,29 +768,29 @@ static void dma_filter_bitmap(const dma_elem_t* src, lldesc_t* dma_desc, uint8_t
         // manually unrolling 4 iterations of the loop here
         rgb = src[0].sample1;
         rgb <<= 8;
-        rgb |= src[2].sample2;
+        rgb |= src[1].sample1;
 
         //blue - green - red
         dst[2] = (rgb & 0b1111100000000000) >> (8); //red
         dst[1] = (rgb & 0b0000011111100000) >> (3); //green
         dst[0] = (rgb & 0b0000000000011111) << 3; //blue
 
-        rgb = src[4].sample1;
+        rgb = src[2].sample1;
         rgb <<= 8;
-        rgb |= src[6].sample2;
+        rgb |= src[3].sample1;
 
         dst[5] = (rgb & 0b1111100000000000) >> (8);
         dst[4] = (rgb & 0b0000011111100000) >> (3);
         dst[3] = (rgb & 0b0000000000011111) << 3;
 
         dst += 6;
-        src += 8;
+        src += 4;
     }
     if ((dma_desc->length & 0x7) != 0) {
         // manually unrolling 4 iterations of the loop here
         rgb = src[0].sample1;
         rgb <<= 8;
-        rgb |= src[2].sample1;
+        rgb |= src[1].sample1;
         dst[2] = (rgb & 0b1111100000000000) >> (8);
         dst[1] = (rgb & 0b0000011111100000) >> (3);
         dst[0] = (rgb & 0b0000000000011111) << 3;
